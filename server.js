@@ -3,7 +3,7 @@ CSC3916 HW2
 File: Server.js
 Description: Web API scaffolding for Movie API
  */
-
+require('dotenv').config();
 var express = require('express');
 var http = require('http');
 var bodyParser = require('body-parser');
