@@ -2,15 +2,15 @@
 CSC3916 HW2
 File: Server.js
 Description: Web API scaffolding for Movie API
- */
+*/
 require('dotenv').config();
+
 var express = require('express');
-var http = require('http');
 var bodyParser = require('body-parser');
 var passport = require('passport');
 var authController = require('./auth');         // Basic Auth
 var authJwtController = require('./auth_jwt');  // JWT Auth
-db = require('./db')(); //hack
+db = require('./db')(); // hack (scaffold)
 var jwt = require('jsonwebtoken');
 var cors = require('cors');
 
@@ -35,7 +35,8 @@ function getJSONObjectForMovieRequirement(req) {
         json.body = req.body;
     }
 
-    if (req.headers != null) {
+    // Only replace "No headers" if headers actually exist
+    if (req.headers != null && Object.keys(req.headers).length > 0) {
         json.headers = req.headers;
     }
 
@@ -54,15 +55,15 @@ router.post('/signup', (req, res) => {
             success: false,
             msg: 'Please include both username and password to signup.'
         });
-    } else {
-        var newUser = {
-            username: req.body.username,
-            password: req.body.password
-        };
-
-        db.save(newUser); // no duplicate checking
-        return res.json({ success: true, msg: 'Successful created new user.' });
     }
+
+    var newUser = {
+        username: req.body.username,
+        password: req.body.password
+    };
+
+    db.save(newUser); // no duplicate checking
+    return res.json({ success: true, msg: 'Successful created new user.' });
 });
 
 router.all('/signup', (req, res) => {
@@ -78,14 +79,14 @@ router.post('/signin', (req, res) => {
             success: false,
             msg: 'Authentication failed. User not found.'
         });
+    }
+
+    if (req.body.password == user.password) {
+        var userToken = { id: user.id, username: user.username };
+        var token = jwt.sign(userToken, process.env.SECRET_KEY);
+        return res.json({ success: true, token: 'JWT ' + token });
     } else {
-        if (req.body.password == user.password) {
-            var userToken = { id: user.id, username: user.username };
-            var token = jwt.sign(userToken, process.env.SECRET_KEY);
-            return res.json({ success: true, token: 'JWT ' + token });
-        } else {
-            return res.status(401).send({ success: false, msg: 'Authentication failed.' });
-        }
+        return res.status(401).send({ success: false, msg: 'Authentication failed.' });
     }
 });
 
@@ -123,6 +124,14 @@ router.route('/movies')
         res.status(405).send({ message: 'HTTP method not supported.' });
     });
 
+// Reject base URL (no URN specified)
+app.all('/', (req, res) => {
+    res.status(404).send({ message: 'Base URL not supported.' });
+});
+
 app.use('/', router);
-app.listen(process.env.PORT || 8080);
+
+const port = process.env.PORT || 8080;
+app.listen(port, () => console.log("Server running on port", port));
+
 module.exports = app; // for testing only
